@@ -43,7 +43,7 @@ shows_table = db.Table('shows_table',
                        db.Column('id', db.Integer, primary_key=True),
                        db.Column('venue_id', db.Integer, db.ForeignKey('Venue.id'), nullable=False),
                        db.Column('artist_id', db.Integer, db.ForeignKey('Artist.id'), nullable=False),
-                       db.Column('start_time', db.DateTime, nullable=False))
+                       db.Column('start_time', db.DateTime, nullable=True, default=datetime.now()))
 
 class Venue(db.Model):
     __tablename__ = 'Venue'
