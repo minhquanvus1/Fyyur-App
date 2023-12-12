@@ -47,7 +47,11 @@ class Venue(db.Model):
     seeking_talent = db.Column(db.Boolean, nullable=False, default=False)
     seeking_description = db.Column(db.String())
 
-    
+# create a many-to-many relationship table between Artist and Genre, by creating a new table "artist_genres_table"
+# Notice that: this Association Table should be placed ABOVE the Artist class, so that the Artist class can reference it, or else it will throw an error "artist_genres_table not defined"
+artist_genres_table = db.Table('artist_genres_table', 
+                               db.Column('artist_id', db.Integer, db.ForeignKey('Artist.id'), primary_key=True),
+                               db.Column('genre_id', db.Integer, db.ForeignKey('Genre.id'), primary_key=True))
 
 class Artist(db.Model):
     __tablename__ = 'Artist'
@@ -64,11 +68,13 @@ class Artist(db.Model):
     website = db.Column(db.String(), nullable=False)
     seeking_venue = db.Column(db.Boolean, nullable=False, default=False)
     seeking_description = db.Column(db.String())
+    genres = db.relationship('Genre', secondary=artist_genres_table, backref=db.backref('artists', lazy=True))
 
 # create Genre Model class (child to Artist, and Venue model class), to implement many-to-many relationship
 class Genre(db.Model):
   id = db.Column(db.Integer, primary_key=True)
   name = db.Column(db.String())
+  
 
 # TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
 
