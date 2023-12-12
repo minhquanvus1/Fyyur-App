@@ -52,7 +52,7 @@ class Venue(db.Model):
     website = db.Column(db.String(), nullable=False)
     seeking_talent = db.Column(db.Boolean, nullable=False, default=False)
     seeking_description = db.Column(db.String())
-    genres = db.relatioship('Genre', secondary=venue_genres_table, backref=db.backref('venues', lazy=True))
+    genres = db.relationship('Genre', secondary=venue_genres_table, backref=db.backref('venues', lazy=True))
 
 # create a many-to-many relationship table between Artist and Genre, by creating a new table "artist_genres_table"
 # Notice that: this Association Table should be placed ABOVE the Artist class, so that the Artist class can reference it, or else it will throw an error "artist_genres_table not defined"
