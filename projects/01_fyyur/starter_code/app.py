@@ -37,6 +37,7 @@ venue_genres_table = db.Table('venue_genres_table',
                               db.Column('venue_id', db.Integer, db.ForeignKey('Venue.id'), primary_key=True),
                               db.Column('genre_id', db.Integer, db.ForeignKey('Genre.id'), primary_key=True))
 
+# TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
 # create a many-to-many relationship table between Venue and Artist, by creating a new table "shows_table"
 shows_table = db.Table('shows_table',
                        db.Column('id', db.Integer, primary_key=True),
@@ -91,8 +92,6 @@ class Genre(db.Model):
   id = db.Column(db.Integer, primary_key=True)
   name = db.Column(db.String())
   
-
-# TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
 
 #----------------------------------------------------------------------------#
 # Filters.
