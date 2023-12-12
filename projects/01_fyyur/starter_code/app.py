@@ -72,6 +72,7 @@ class Artist(db.Model):
 
 # create Genre Model class (child to Artist, and Venue model class), to implement many-to-many relationship
 class Genre(db.Model):
+  __tablename__ = 'Genre'
   id = db.Column(db.Integer, primary_key=True)
   name = db.Column(db.String())
   
