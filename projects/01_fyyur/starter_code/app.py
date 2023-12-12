@@ -65,7 +65,10 @@ class Artist(db.Model):
     seeking_venue = db.Column(db.Boolean, nullable=False, default=False)
     seeking_description = db.Column(db.String())
 
-    
+# create Genre Model class (child to Artist, and Venue model class), to implement many-to-many relationship
+class Genre(db.Model):
+  id = db.Column(db.Integer, primary_key=True)
+  name = db.Column(db.String())
 
 # TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
 
