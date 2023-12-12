@@ -31,6 +31,12 @@ migrate = Migrate(app, db)
 # Models.
 #----------------------------------------------------------------------------#
 
+# create a many-to-many relationship table between Venue and Genre, by creating a new table "venue_genres_table"
+# Notice that: this Association Table should be placed ABOVE the Venue class, so that the Venue class can reference it, or else it will throw an error "venue_genres_table not defined"
+venue_genres_table = db.Table('venue_genres_table',
+                              db.Column('venue_id', db.Integer, db.ForeignKey('Venue.id'), primary_key=True),
+                              db.Column('genre_id', db.Integer, db.ForeignKey('Genre.id'), primary_key=True))
+
 class Venue(db.Model):
     __tablename__ = 'Venue'
 
@@ -46,6 +52,7 @@ class Venue(db.Model):
     website = db.Column(db.String(), nullable=False)
     seeking_talent = db.Column(db.Boolean, nullable=False, default=False)
     seeking_description = db.Column(db.String())
+    genres = db.relatioship('Genre', secondary=venue_genres_table, backref=db.backref('venues', lazy=True))
 
 # create a many-to-many relationship table between Artist and Genre, by creating a new table "artist_genres_table"
 # Notice that: this Association Table should be placed ABOVE the Artist class, so that the Artist class can reference it, or else it will throw an error "artist_genres_table not defined"
