@@ -37,6 +37,13 @@ venue_genres_table = db.Table('venue_genres_table',
                               db.Column('venue_id', db.Integer, db.ForeignKey('Venue.id'), primary_key=True),
                               db.Column('genre_id', db.Integer, db.ForeignKey('Genre.id'), primary_key=True))
 
+# create a many-to-many relationship table between Venue and Artist, by creating a new table "shows_table"
+shows_table = db.Table('shows_table',
+                       db.Column('id', db.Integer, primary_key=True),
+                       db.Column('venue_id', db.Integer, db.ForeignKey('Venue.id'), nullable=False),
+                       db.Column('artist_id', db.Integer, db.ForeignKey('Artist.id'), nullable=False),
+                       db.Column('start_time', db.DateTime, nullable=False))
+
 class Venue(db.Model):
     __tablename__ = 'Venue'
 
@@ -68,7 +75,7 @@ class Artist(db.Model):
     city = db.Column(db.String(120))
     state = db.Column(db.String(120))
     phone = db.Column(db.String(120))
-    genres = db.Column(db.String(120))
+    #genres = db.Column(db.String(120)) # remove this line, since we have created a many-to-many relationship table between Artist and Genre
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
@@ -76,6 +83,7 @@ class Artist(db.Model):
     seeking_venue = db.Column(db.Boolean, nullable=False, default=False)
     seeking_description = db.Column(db.String())
     genres = db.relationship('Genre', secondary=artist_genres_table, backref=db.backref('artists', lazy=True))
+    venues = db.relationship('Venue', secondary=shows_table, backref=db.backref('artists', lazy=True))
 
 # create Genre Model class (child to Artist, and Venue model class), to implement many-to-many relationship
 class Genre(db.Model):
