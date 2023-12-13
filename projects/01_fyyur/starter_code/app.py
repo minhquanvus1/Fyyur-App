@@ -2,7 +2,7 @@
 # Imports
 #----------------------------------------------------------------------------#
 
-import json
+import json, sys
 import dateutil.parser
 import babel
 from flask import Flask, render_template, request, Response, flash, redirect, url_for
@@ -61,6 +61,9 @@ class Venue(db.Model):
     seeking_talent = db.Column(db.Boolean, nullable=False, default=False)
     seeking_description = db.Column(db.String())
     genres = db.relationship('Genre', secondary=venue_genres_table, backref=db.backref('venues', lazy=True))
+    
+    def __repr__(self):
+      return f'<Venue ID: {self.id}, name: {self.name}, city: {self.city}, state: {self.state}, address: {self.address}, phone: {self.phone}, image_link: {self.image_link}, facebook_link: {self.facebook_link}, website: {self.website}, seeking_talent: {self.seeking_talent}, seeking_description: {self.seeking_description}, genres: {self.genres}>'
 
 # create a many-to-many relationship table between Artist and Genre, by creating a new table "artist_genres_table"
 # Notice that: this Association Table should be placed ABOVE the Artist class, so that the Artist class can reference it, or else it will throw an error "artist_genres_table not defined"
@@ -91,6 +94,9 @@ class Genre(db.Model):
   __tablename__ = 'Genre'
   id = db.Column(db.Integer, primary_key=True)
   name = db.Column(db.String())
+  
+  def __repr__(self):
+    return f'<Genre ID: {self.id}, name: {self.name}>'
   
 
 #----------------------------------------------------------------------------#
@@ -257,12 +263,41 @@ def create_venue_form():
 def create_venue_submission():
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
+  form = VenueForm(request.form)
+  venue = Venue(name=form.name.data, city=form.city.data, state=form.state.data, address=form.address.data, phone=form.phone.data, image_link=form.image_link.data, facebook_link=form.facebook_link.data, website=form.website_link.data, seeking_talent=form.seeking_talent.data, seeking_description=form.seeking_description.data)
+  print("venue: ", venue)
+  # get the list of genres from the form
+  genre_name_list = request.form.getlist('genres')
+  # print("genre_list type: ", type(genre_name_list))
+  # print("genre_list data: ", genre_name_list)
+  # print("form.genres.data: ", form.genres.data)
+  print("genre_name_list: ", request.form.getlist('genres'))
 
-  # on successful db insert, flash success
-  flash('Venue ' + request.form['name'] + ' was successfully listed!')
+
+  for each_genre_name in genre_name_list:
+    # create a new Genre object
+    genre = Genre(name=each_genre_name)
+    # append the new Genre object to the venue.genres list
+    venue.genres.append(genre)
+  print("venue.genres: ", venue.genres)
+  print('Venue After adding genres: ', venue)
+  if not form.validate():
+    flash(form.errors)
+    return redirect(url_for('create_venue_submission'))
+  try: 
+    db.session.add(venue)
+    db.session.commit()
+    # on successful db insert, flash success
+    flash('Venue ' + request.form['name'] + ' was successfully listed!')
+  except:
+    db.session.rollback()
+    flash('An error occurred. Venue ' + request.form['name'] + ' could not be listed.')
+    print(sys.exc_info())
   # TODO: on unsuccessful db insert, flash an error instead.
   # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
   # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
+  finally:
+    db.session.close()
   return render_template('pages/home.html')
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
