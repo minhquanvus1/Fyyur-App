@@ -504,6 +504,9 @@ def create_artist_submission():
     genre = Genre(name=each_genre_name)
     # append the new Genre object to the venue.genres list
     artist.genres.append(genre)
+  if not form.validate():
+    flash(form.errors)
+    return redirect(url_for('create_artist_submission'))
   try:
     db.session.add(artist)
     db.session.commit()
@@ -576,12 +579,38 @@ def create_shows():
 def create_show_submission():
   # called to create new shows in the db, upon submitting new show listing form
   # TODO: insert form data as a new Show record in the db, instead
-
-  # on successful db insert, flash success
-  flash('Show was successfully listed!')
-  # TODO: on unsuccessful db insert, flash an error instead.
-  # e.g., flash('An error occurred. Show could not be listed.')
-  # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
+  form = ShowForm(request.form)
+  # Because shows_table is just an Association Table to connect Venue and Artist, so we can't create an object of type shows_table
+  #show = shows_table(venue_id=form.venue_id.data, artist_id=form.artist_id.data, start_time=form.start_time.data)
+  # instead, we will create a new entry in the shows_table, by using the insert() method
+  # Create a new entry in the shows_table
+  # here, show_entry is an object of type sqlalchemy.sql.dml.Insert object, which is returned by the insert() method, and it contains the values that we want to insert into the shows_table
+  show_entry = shows_table.insert().values(
+        venue_id=form.venue_id.data,
+        artist_id=form.artist_id.data,
+        start_time=form.start_time.data)
+  if not form.validate():
+    flash(form.errors)
+    return redirect(url_for('create_show_submission'))
+  try:
+    # because we don't create an object of type shows_table, so we can't use db.session.add(show), because db.session.add() only accepts an object as parameter
+    #db.session.add(show_entry)
+    # instead, we will use db.session.execute() to execute the insert() method
+    db.session.execute(show_entry)
+    # commit the changes to the database. Because db.session.execute() only executes the insert() method, but doesn't commit the changes to the database
+    db.session.commit()
+    # on successful db insert, flash success
+    flash('Show was successfully listed!')
+  except:
+    db.session.rollback()
+    print(sys.exc_info())
+    # TODO: on unsuccessful db insert, flash an error instead.
+    # e.g., flash('An error occurred. Show could not be listed.')
+    # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
+    flash('An error occurred. Show could not be listed.')
+  finally:
+    db.session.close()
+  
   return render_template('pages/home.html')
 
 @app.errorhandler(404)
