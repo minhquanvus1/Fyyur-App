@@ -225,7 +225,7 @@ class ArtistForm(Form):
      )
     facebook_link = StringField(
         # TODO implement enum restriction (Not valid! Because it's not an enum, it's a URL!, and enum is used in the case when you have a fixed set of values, like the states above, not a URL!)
-        'facebook_link', validators=[URL()]
+        'facebook_link', validators=[URL(), Optional()]
      )
 
     website_link = StringField(
