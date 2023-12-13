@@ -2,7 +2,7 @@
 # Imports
 #----------------------------------------------------------------------------#
 
-import json, sys
+import json, sys, datetime
 import dateutil.parser
 import babel
 from flask import Flask, render_template, request, Response, flash, redirect, url_for
@@ -129,27 +129,45 @@ def index():
 def venues():
   # TODO: replace with real venues data.
   #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
-  data=[{
-    "city": "San Francisco",
-    "state": "CA",
-    "venues": [{
-      "id": 1,
-      "name": "The Musical Hop",
-      "num_upcoming_shows": 0,
-    }, {
-      "id": 3,
-      "name": "Park Square Live Music & Coffee",
-      "num_upcoming_shows": 1,
-    }]
-  }, {
-    "city": "New York",
-    "state": "NY",
-    "venues": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }]
+  # data=[{
+  #   "city": "San Francisco",
+  #   "state": "CA",
+  #   "venues": [{
+  #     "id": 1,
+  #     "name": "The Musical Hop",
+  #     "num_upcoming_shows": 0,
+  #   }, {
+  #     "id": 3,
+  #     "name": "Park Square Live Music & Coffee",
+  #     "num_upcoming_shows": 1,
+  #   }]
+  # }, {
+  #   "city": "New York",
+  #   "state": "NY",
+  #   "venues": [{
+  #     "id": 2,
+  #     "name": "The Dueling Pianos Bar",
+  #     "num_upcoming_shows": 0,
+  #   }]
+  # }]
+  data = []
+  list_of_tuples_containing_city_and_state = db.session.query(Venue.city, Venue.state).distinct(Venue.city, Venue.state).all()
+  for each_tuple in list_of_tuples_containing_city_and_state:
+    city = each_tuple[0]
+    state = each_tuple[1]
+    list_of_venues = Venue.query.filter_by(city=city, state=state).all()
+    venue_list = []
+    for each_venue in list_of_venues:
+      venue_list.append({
+        "id": each_venue.id,
+        "name": each_venue.name,
+        "num_upcoming_shows": db.session.query(shows_table).filter(shows_table.c.start_time > datetime.now()).count()
+      })
+    data.append({
+      "city": city,
+      "state": state,
+      "venues": venue_list
+    })
   return render_template('pages/venues.html', areas=data);
 
 @app.route('/venues/search', methods=['POST'])
