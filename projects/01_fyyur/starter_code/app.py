@@ -340,7 +340,7 @@ def delete_venue(venue_id):
   # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
   
   try:
-    venue = Venue.query.filter_by(id=venue_id).delete()
+    Venue.query.filter_by(id=venue_id).delete()
     db.session.commit()
   except:
     db.session.rollback()
@@ -619,10 +619,11 @@ def create_show_submission():
   # instead, we will create a new entry in the shows_table, by using the insert() method
   # Create a new entry in the shows_table
   # here, show_entry is an object of type sqlalchemy.sql.dml.Insert object, which is returned by the insert() method, and it contains the values that we want to insert into the shows_table
-  show_entry = shows_table.insert().values(
-        venue_id=form.venue_id.data,
-        artist_id=form.artist_id.data,
-        start_time=form.start_time.data)
+  # show_entry = shows_table.insert().values(
+  #       venue_id=form.venue_id.data,
+  #       artist_id=form.artist_id.data,
+  #       start_time=form.start_time.data)
+  show = Show(venue_id=form.venue_id.data, artist_id=form.artist_id.data, start_time=form.start_time.data)
   if not form.validate():
     flash(form.errors)
     return redirect(url_for('create_show_submission'))
@@ -630,7 +631,7 @@ def create_show_submission():
     # because we don't create an object of type shows_table, so we can't use db.session.add(show), because db.session.add() only accepts an object as parameter
     #db.session.add(show_entry)
     # instead, we will use db.session.execute() to execute the insert() method
-    db.session.execute(show_entry)
+    db.session.add(show)
     # commit the changes to the database. Because db.session.execute() only executes the insert() method, but doesn't commit the changes to the database
     db.session.commit()
     # on successful db insert, flash success
