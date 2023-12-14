@@ -555,20 +555,32 @@ def edit_venue_submission(venue_id):
   venue.website = form.website_link.data
   venue.seeking_talent = form.seeking_talent.data
   venue.seeking_description = form.seeking_description.data
-  list_of_current_genres_object = venue.genres
-  list_of_current_genreName = []
-  for each_genre_object in list_of_current_genres_object:
-    list_of_current_genreName.append(each_genre_object.name)
+  
+  # This logic for Update the Genres of a Venue is that: if the updated Genre is not in the Genre list of that Venue, then add that Genre to the Genre list of that Venue. If the updated Genre is already in the Genre list of that Venue, then do nothing (keep what is existing, add what is new)
+  # list_of_current_genres_object = venue.genres
+  # list_of_current_genreName = []
+  # for each_genre_object in list_of_current_genres_object:
+  #   list_of_current_genreName.append(each_genre_object.name)
+  # list_of_updated_genres_name = request.form.getlist('genres')
+  # for each_updated_genre_name in list_of_updated_genres_name:
+  #   if not each_updated_genre_name in list_of_current_genreName:
+  #     genre = Genre(name=each_updated_genre_name)
+  #     venue.genres.append(genre)
+  
+  # this logic for Update the Genres of a Venue is that: clear the list of current Genres of that Venue, and then add the updated Genres to the list of Genres of that Venue (clear what is existing, add what is new)
   list_of_updated_genres_name = request.form.getlist('genres')
-  for each_updated_genre_name in list_of_updated_genres_name:
-    if not each_updated_genre_name in list_of_current_genreName:
-      genre = Genre(name=each_updated_genre_name)
-      venue.genres.append(genre)
-  print(f'updated genres of this Venue, with venue_id = {venue_id}: ', venue.genres)
-  print('updated venue: ', venue)
+  # Validate the form, by checking if the form is valid or not (basing on the constraints of the VenueForm class in forms.py)
   if not form.validate():
     flash(form.errors)
     return redirect(url_for('edit_venue_submission', venue_id=venue_id))
+  # clear the list of current Genres of that Venue
+  venue.genres.clear()
+  for each_updated_genre_name in list_of_updated_genres_name:
+    genre = Genre(name=each_updated_genre_name)
+    venue.genres.append(genre)
+  print(f'updated genres of this Venue, with venue_id = {venue_id}: ', venue.genres)
+  print('updated venue: ', venue)
+  
   try:
     db.session.commit()
     flash('Venue ' + request.form['name'] + ' was successfully updated!')
