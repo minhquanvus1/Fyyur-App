@@ -114,10 +114,10 @@ class VenueForm(Form):
         ]
     )
     facebook_link = StringField(
-        'facebook_link', validators=[URL(), DataRequired()]
+        'facebook_link', validators=[URL(), Optional()]
     )
     website_link = StringField(
-        'website_link', validators=[URL(), DataRequired()]
+        'website_link', validators=[URL(), Optional()]
     )
 
     seeking_talent = BooleanField( 'seeking_talent', default=False)
@@ -229,7 +229,7 @@ class ArtistForm(Form):
      )
 
     website_link = StringField(
-        'website_link', validators=[URL(), DataRequired()]
+        'website_link', validators=[URL(), Optional()]
      )
 
     seeking_venue = BooleanField( 'seeking_venue', default=False)
