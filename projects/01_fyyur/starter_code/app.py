@@ -513,7 +513,40 @@ def edit_artist(artist_id):
 def edit_artist_submission(artist_id):
   # TODO: take values from the form submitted, and update existing
   # artist record with ID <artist_id> using the new attributes
-
+  form = ArtistForm(request.form)
+  artist = Artist.query.get(artist_id)
+  artist.name = form.name.data
+  artist.city = form.city.data
+  artist.state = form.state.data
+  artist.phone = form.phone.data
+  artist.image_link = form.image_link.data
+  artist.facebook_link = form.facebook_link.data
+  artist.website = form.website_link.data
+  artist.seeking_venue = form.seeking_venue.data
+  artist.seeking_description = form.seeking_description.data
+  # clear the list of current Genres of that Artist
+  artist.genres = []
+  #list_of_updated_genres_name = request.form.getlist('genres') # "form.genres.data" is equivalent to "request.form.getlist('genres')", which returns the list of Genres' names that the user has selected on the form
+  #list_of_updated_genres_object = form.genres.data
+  if not form.validate:
+    flash(form.errors)
+    return redirect(url_for('edit_artist_submission', artist_id=artist_id))
+  list_of_updated_genres_name = form.genres.data # return the list of Genres' names that the user has selected on the form
+  # for each_update_genre_object in list_of_updated_genres_object:
+  #   list_of_updated_genres_name.append(each_update_genre_object.name)
+  for each_updated_genre_name in list_of_updated_genres_name:
+    genre = Genre(name=each_updated_genre_name)
+    artist.genres.append(genre)
+  try:
+    db.session.add(artist)
+    db.session.commit()
+    flash('Artist ' + request.form['name'] + ' was successfully updated!')
+  except:
+    db.session.rollback()
+    print(sys.exc_info())
+    flash('An error occurred. Artist ' + request.form['name'] + ' could not be updated.')
+  finally:
+    db.session.close()
   return redirect(url_for('show_artist', artist_id=artist_id))
 
 @app.route('/venues/<int:venue_id>/edit', methods=['GET'])
