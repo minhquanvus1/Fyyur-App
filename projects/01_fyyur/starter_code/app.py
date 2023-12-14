@@ -168,22 +168,38 @@ def venues():
   # }]
   data = []
   list_of_tuples_containing_city_and_state = db.session.query(Venue.city, Venue.state).distinct(Venue.city, Venue.state).all()
+  print("list_of_tuples_containing_city_and_state: ", list_of_tuples_containing_city_and_state)
   for each_tuple in list_of_tuples_containing_city_and_state:
     city = each_tuple[0]
     state = each_tuple[1]
+    # get the list of venues for each city and state (group by each unique (city and state))
     list_of_venues = Venue.query.filter_by(city=city, state=state).all()
+    print("list_of_venues: ", list_of_venues)
     venue_list = []
     for each_venue in list_of_venues:
+      number_of_upcoming_shows = 0
+      # get the list of shows for each venue. (we can not use Venue.shows, because Venue.shows is a relationship, not a list)
+      list_of_shows = each_venue.shows # access the "shows" attribute of Venue object, just like OOP
+      print("list_of_shows: ", list_of_shows)
+      for each_show in list_of_shows:
+        # check if the show is upcoming or past, by comparing the show.start_time with current time
+        if each_show.start_time >= datetime.now():
+          number_of_upcoming_shows += 1
+      print("number_of_upcoming_shows: ", number_of_upcoming_shows)
+      # append the "customized" object, into "venue_list"
       venue_list.append({
         "id": each_venue.id,
         "name": each_venue.name,
-        "num_upcoming_shows": db.session.query(shows_table).filter(shows_table.c.start_time > datetime.now()).count()
+        "num_upcoming_shows": number_of_upcoming_shows
       })
+      print("venue_list: ", venue_list)
+      # append the "customized" object, into "data", which will be rendered on the pages/venues.html to display the Venue, grouped by (city, and state), and their upcomming shows for that Venue
     data.append({
       "city": city,
       "state": state,
       "venues": venue_list
     })
+    print("data: ", data)
   return render_template('pages/venues.html', areas=data);
 
 @app.route('/venues/search', methods=['POST'])
