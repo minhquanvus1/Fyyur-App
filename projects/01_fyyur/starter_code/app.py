@@ -207,15 +207,47 @@ def search_venues():
   # TODO: implement search on venues with partial string search. Ensure it is case-insensitive.
   # seach for Hop should return "The Musical Hop".
   # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
-  response={
-    "count": 1,
-    "data": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }
-  return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
+  # response={
+  #   "count": 1,
+  #   "data": [{
+  #     "id": 2,
+  #     "name": "The Dueling Pianos Bar",
+  #     "num_upcoming_shows": 0,
+  #   }]
+  # }
+  search_term = request.form.get('search_term', '').strip() # get the search term from the form, and remove the leading and trailing spaces. if we don't use the second argument in request.form.get('search_term', ''), then it will return None, instead of empty string ''
+  print("search_term: ", search_term)
+  # if the user just enters whitespace, then redirect to the venues page
+  if search_term == '':
+    #flash('Please enter a search term!')
+    return redirect(url_for('venues'))
+  list_of_found_venues = Venue.query.filter(Venue.name.like('%' + search_term + '%')).all() # for CASE-INSENSITIVE search, use Venue.name.ilike('%' + search_term + '%')
+  print("list_of_found_venues: ", list_of_found_venues)
+  number_of_found_venue = len(list_of_found_venues)
+  print("number_of_found_venue: ", number_of_found_venue)
+  if number_of_found_venue == 0:
+    flash('No results found for: ' + search_term)
+    return redirect(url_for('venues'))
+  else:
+    list_of_customized_found_venues = []
+    customized_found_venue = {}
+    for each_found_venue in list_of_found_venues:
+      # get the list of all upcoming shows for each found venue, by filtering the Show table by venue_id, and start_time >= current time
+      list_of_all_upcoming_shows = Show.query.filter(Show.venue_id == each_found_venue.id).filter(Show.start_time >= datetime.now()).all()
+      # create a "customized_found_venue" dictionary for each found venue
+      customized_found_venue = {
+        'id': each_found_venue.id,
+        'name': each_found_venue.name,
+        'num_upcoming_shows': len(list_of_all_upcoming_shows)
+      }
+      # append the "customized_found_venue" dictionary to the list_of_customized_found_venues in each iteration (for each each_venue)
+      list_of_customized_found_venues.append(customized_found_venue)
+    # after the for loop, we will have a list of "customized_found_venue" dictionaries, each of which contains the information of a found venue, and the number of upcoming shows for that venue
+    response = {
+      'count': number_of_found_venue,
+      'data': list_of_customized_found_venues
+    }
+    return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
 
 @app.route('/venues/<int:venue_id>')
 def show_venue(venue_id):
