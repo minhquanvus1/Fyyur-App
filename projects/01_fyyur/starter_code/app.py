@@ -621,6 +621,25 @@ def edit_venue(venue_id):
   # TODO: populate form with values from venue with ID <venue_id>
   # get the current data of a particular Venue (with a particular venue_id) to display on the edit page, for user to edit their existing data
   venue = db.session.query(Venue).filter(Venue.id==venue_id).all()[0] # .all()[0] is equivalent to .first()
+
+  list_of_genres_object = venue.genres # get the list of Genres Object of each venue
+  list_of_genres_name = [each_genre_object.name for each_genre_object in list_of_genres_object] # list comprehension, to get the list of Genres' names of each venue
+  # list_of_genres_name = []
+  # for each_genre_object in list_of_genres_object:
+  #   list_of_genres_name.append(each_genre_object.name)
+  
+  # implement Server-side Rendering, by pre-populating the form with the existing data of the Venue in the server, and send the pre-populated form to the client (forms/edit_venue.html), so that the client can edit the existing data of the Venue
+  form.name.data = venue.name
+  form.city.data = venue.city
+  form.state.data = venue.state
+  form.address.data = venue.address
+  form.phone.data = venue.phone
+  form.image_link.data = venue.image_link
+  form.facebook_link.data = venue.facebook_link
+  form.website_link.data = venue.website
+  form.seeking_talent.data = venue.seeking_talent
+  form.seeking_description.data = venue.seeking_description
+  form.genres.data = list_of_genres_name
   return render_template('forms/edit_venue.html', form=form, venue=venue)
 
 @app.route('/venues/<int:venue_id>/edit', methods=['POST'])
