@@ -477,15 +477,30 @@ def search_artists():
   # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
   # seach for "A" should return "Guns N Petals", "Matt Quevado", and "The Wild Sax Band".
   # search for "band" should return "The Wild Sax Band".
-  response={
-    "count": 1,
-    "data": [{
-      "id": 4,
-      "name": "Guns N Petals",
-      "num_upcoming_shows": 0,
-    }]
-  }
-  return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
+  # response={
+  #   "count": 1,
+  #   "data": [{
+  #     "id": 4,
+  #     "name": "Guns N Petals",
+  #     "num_upcoming_shows": 0,
+  #   }]
+  # }
+  search_term = request.form.get('search_term', '').strip()
+  if search_term == '':
+    return redirect(url_for('artists'))
+  list_of_found_artists = Artist.query.filter(Artist.name.ilike('%' + search_term + '%')).all() # for CASE-SENSITIVE search, use Artist.name.like('%' + search_term + '%')
+  number_of_found_artists = len(list_of_found_artists)
+  if number_of_found_artists == 0:
+    flash('No results found for: ' + search_term)
+    return redirect(url_for('artists'))
+  else:
+    # use list comprehension to create a list of "customized_artists" dictionaries, each of which contains the information of an artist, and the number of upcoming shows for that artist
+    list_of_customized_artists = [{'id': each_found_artist.id, 'name': each_found_artist.name, 'num_upcoming_shows': Show.query.filter(Show.artist_id == each_found_artist.id).filter(Show.start_time >= datetime.now()).count()} for each_found_artist in list_of_found_artists]
+    response = {
+      'count': number_of_found_artists,
+      'data': list_of_customized_artists
+    }
+    return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
 
 @app.route('/artists/<int:artist_id>')
 def show_artist(artist_id):
