@@ -559,6 +559,10 @@ def edit_artist(artist_id):
   # }
   # TODO: populate form with fields from artist with ID <artist_id>
   artist = Artist.query.filter_by(id=artist_id).first()
+  list_of_genres_object = artist.genres # get the list of Genres Object of each artist
+  list_of_genres_name = [each_genre_object.name for each_genre_object in list_of_genres_object]
+  form.genres.data = list_of_genres_name # apply Server-Side Rendering to prepopulate ONLY the "genres" field (because the "genres" field is a multiple select field, and we can't prepopulate it using Client-side Rendering in the edit_artist.html)
+  # the rest of the fields will be prepopulated using Client-side Rendering in the edit_artist.html
   return render_template('forms/edit_artist.html', form=form, artist=artist)
 
 @app.route('/artists/<int:artist_id>/edit', methods=['POST'])
