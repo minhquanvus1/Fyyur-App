@@ -221,7 +221,7 @@ def search_venues():
   if search_term == '':
     #flash('Please enter a search term!')
     return redirect(url_for('venues'))
-  list_of_found_venues = Venue.query.filter(Venue.name.like('%' + search_term + '%')).all() # for CASE-INSENSITIVE search, use Venue.name.ilike('%' + search_term + '%')
+  list_of_found_venues = Venue.query.filter(Venue.name.ilike('%' + search_term + '%')).all() # for CASE-SENSITIVE search, use Venue.name.like('%' + search_term + '%')
   print("list_of_found_venues: ", list_of_found_venues)
   number_of_found_venue = len(list_of_found_venues)
   print("number_of_found_venue: ", number_of_found_venue)
