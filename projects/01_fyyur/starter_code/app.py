@@ -5,7 +5,7 @@
 import json, sys, datetime
 import dateutil.parser
 import babel
-from flask import Flask, render_template, request, Response, flash, redirect, url_for
+from flask import Flask, render_template, request, Response, flash, redirect, url_for, abort
 from flask_moment import Moment
 from flask_sqlalchemy import SQLAlchemy
 import logging
@@ -348,22 +348,28 @@ def create_venue_submission():
   # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
   finally:
     db.session.close()
-  return render_template('pages/home.html')
+  return redirect(url_for('pages/home.html'))
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
   # TODO: Complete this endpoint for taking a venue_id, and using
   # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
-  
+  error = False
   try:
     Venue.query.filter_by(id=venue_id).delete()
     db.session.commit()
   except:
+    error = True
     db.session.rollback()
     print(sys.exc_info())
   finally:
     db.session.close()
-  return render_template('pages/home.html')
+  if error:
+    flash('An error occurred. Venue ' + venue_id + ' could not be deleted.')
+    abort(500)
+  else:
+    flash('Venue ' + venue_id + ' was successfully deleted!')
+  return redirect(url_for('index'))
 
   # BONUS CHALLENGE: Implement a button to delete a Venue on a Venue Page, have it so that
   # clicking that button delete it from the db then redirect the user to the homepage
