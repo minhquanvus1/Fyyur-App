@@ -36,7 +36,7 @@ class Venue(db.Model):
     # use the list of genres in the form.py, to create a new column in the Venue table, called genres
     genres = db.Column(db.ARRAY(db.String()), nullable=True)
     # genres = db.relationship('Genre', secondary=venue_genres_table, backref=db.backref('venues', lazy=True, cascade='all, delete'))
-    shows = db.relationship('Show', backref='venue', lazy=True, cascade='all, delete')
+    shows = db.relationship('Show', backref='venue', lazy='joined', cascade='all, delete')
     
     
     def __repr__(self):
@@ -56,7 +56,6 @@ class Artist(db.Model):
     city = db.Column(db.String(120))
     state = db.Column(db.String(120))
     phone = db.Column(db.String(120), nullable=False)
-    #genres = db.Column(db.String(120)) # remove this line, since we have created a many-to-many relationship table between Artist and Genre
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
@@ -66,8 +65,9 @@ class Artist(db.Model):
     genres = db.Column(db.ARRAY(db.String()), nullable=True)
     # genres = db.relationship('Genre', secondary=artist_genres_table, backref=db.backref('artists', lazy=True, cascade='all, delete'))
     # venues = db.relationship('Venue', secondary=shows_table, backref=db.backref('artists', lazy=True))
-    shows = db.relationship('Show', backref='artist', lazy=True, cascade='all, delete')
-    
+    shows = db.relationship('Show', backref='artist', lazy='joined', cascade='all, delete')
+    # use lazy='joined' to load the related object in the same query as the parent using a JOIN statement. This will allow us to access the related object without another query. This is usually sufficient for simple associations and it can be disabled by setting lazy=False.
+    # what I mean is that for example when we query the Artist table, we can also get the related Show table, without having to query the Show table again. This is because we have the "shows" relationship in the Artist table, and we set lazy='joined' for the "shows" relationship, so that we can get the related Show table in the same query as the Artist table, using a JOIN statement. so artist.shows will return the related Show table, without having to query the Show table again. If we use lazy=True, then artist.shows will return a query object, and we have to use artist.shows.all() to get the related Show table.
     def __repr__(self):
       return f'<Artist ID: {self.id}, name: {self.name}, city: {self.city}, state: {self.state}, phone: {self.phone}, image_link: {self.image_link}, facebook_link: {self.facebook_link}, website: {self.website}, seeking_venue: {self.seeking_venue}, seeking_description: {self.seeking_description}, genres: {self.genres}, shows: {self.shows}>'
 # create Genre Model class (child to Artist, and Venue model class), to implement many-to-many relationship
