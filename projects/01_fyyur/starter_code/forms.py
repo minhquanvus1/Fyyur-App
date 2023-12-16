@@ -1,8 +1,8 @@
 from datetime import datetime
 from flask_wtf import FlaskForm as Form
 from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField, IntegerField
-from wtforms.validators import DataRequired, AnyOf, URL, Optional, Regexp
-
+from wtforms.validators import DataRequired, AnyOf, URL, Optional, Regexp, ValidationError
+import re
 
 state_choices = [
             ('AL', 'AL'),
@@ -80,6 +80,14 @@ genres_choices = [
             ('Other', 'Other'),
         ]
 
+# example: 123-456-7890, 123.456.7890, 1234567890, 123 456 7890, (123)-456-7890, (123) 456-7890, (123)4567890, etc.
+phone_regex = re.compile(r'^\(?([0-9]{3})\)?[-. ]?[0-9]{3}[-. ]?[0-9]{4}$')
+
+def is_valid_phone(phone_number):
+    # check if the phone number matches the regex pattern
+    # this returns a match object if the phone number matches the pattern, or None if it doesn't match
+    return phone_regex.match(phone_number)
+
 class ShowForm(Form):
     artist_id = IntegerField(
         'artist_id', validators=[DataRequired()]
@@ -108,8 +116,13 @@ class VenueForm(Form):
         'address', validators=[DataRequired()]
     )
     phone = StringField(
-         'phone', validators=[DataRequired(), Regexp(r'^\(?([0-9]{3})\)?[-. ]?[0-9]{3}[-. ]?[0-9]{4}$')]
+         'phone', validators=[DataRequired()]
     )
+    # the framework will automatically know that this is a validation function for the phone field, because it starts with validate_ and ends with the name of the field, which is phone in this case
+    def validate_phone(self, field): 
+        if not is_valid_phone(field.data):
+            raise ValidationError('Invalid phone number.')
+        
     image_link = StringField(
         'image_link', validators=[URL(), Optional()]
     )
@@ -147,8 +160,13 @@ class ArtistForm(Form):
     phone = StringField(
         # TODO implement validation logic for phone
         # Validate phone number that contains digits (from 0 to 9), dashes (-), and/or plus signs (+) only. 
-        'phone', validators=[DataRequired(), Regexp(r'^\(?([0-9]{3})\)?[-. ]?[0-9]{3}[-. ]?[0-9]{4}$')] # example: 123-456-7890, 123.456.7890, 1234567890, 123 456 7890, (123)-456-7890, (123) 456-7890, (123)4567890, etc.
+        'phone', validators=[DataRequired()]
     )
+    
+    def validate_phone(self, field): 
+        if not is_valid_phone(field.data):
+            raise ValidationError('Invalid phone number.')
+        
     image_link = StringField(
         'image_link', validators=[URL(), Optional()]
     )
