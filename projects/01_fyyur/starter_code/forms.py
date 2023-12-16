@@ -108,7 +108,7 @@ class VenueForm(Form):
         'address', validators=[DataRequired()]
     )
     phone = StringField(
-        'phone', validators=[DataRequired(), Regexp(r'^[0-9\-\+]+$')]
+         'phone', validators=[DataRequired(), Regexp(r'^\(?([0-9]{3})\)?[-. ]?[0-9]{3}[-. ]?[0-9]{4}$')]
     )
     image_link = StringField(
         'image_link', validators=[URL(), Optional()]
@@ -147,7 +147,7 @@ class ArtistForm(Form):
     phone = StringField(
         # TODO implement validation logic for phone
         # Validate phone number that contains digits (from 0 to 9), dashes (-), and/or plus signs (+) only. 
-        'phone', validators=[DataRequired(), Regexp(r'^[0-9\-\+]+$')]
+        'phone', validators=[DataRequired(), Regexp(r'^\(?([0-9]{3})\)?[-. ]?[0-9]{3}[-. ]?[0-9]{4}$')] # example: 123-456-7890, 123.456.7890, 1234567890, 123 456 7890, (123)-456-7890, (123) 456-7890, (123)4567890, etc.
     )
     image_link = StringField(
         'image_link', validators=[URL(), Optional()]
