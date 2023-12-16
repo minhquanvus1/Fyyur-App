@@ -5,7 +5,7 @@
 import json, sys, datetime
 import dateutil.parser
 import babel
-from flask import Flask, render_template, request, flash, redirect, url_for, abort
+from flask import Flask, render_template, request, flash, redirect, url_for, abort, jsonify
 from flask_moment import Moment
 import logging
 from logging import Formatter, FileHandler
@@ -20,6 +20,7 @@ from models import db, Artist, Venue, Show
 app = Flask(__name__)
 moment = Moment(app)
 app.config.from_object('config')
+app.app_context().push() # add this line to fix the error "RuntimeError: No application found. Either work inside a view function or push an application context." when using the Interactive Shell, because we are using the "app" object outside of the view function, which means that we are using the "app" object outside of the application context. So we need to push the application context, so that we can use the "app" object outside of the view function. The view function is the function that is decorated with the app.route decorator, for example: @app.route('/venues/create', methods=['GET']). if we don't use this, why we access the app outside the view function, because we are using the "app" object outside of the application context, so it will throw an error "RuntimeError: Working outside of application context." But this error didn't happen when we use db = SQLAlchemy(app), because SQLAlchemy(app) will automatically push the application context for us, so that we can use the "app" object outside of the view function. But when we use db = SQLAlchemy(), we have to push the application context manually, so that we can use the "app" object outside of the view function. Another way to solve this error is
 db.init_app(app) # initialize db with app
 
 # TODO: connect to a local postgresql database (already done in config.py)
@@ -267,7 +268,7 @@ def show_venue(venue_id):
     customized_object = {
       'id': each_venue.id,
       'name': each_venue.name,
-      'genres': [each_genre.name for each_genre in each_venue.genres],
+      'genres': each_venue.genres,
       'address': each_venue.address,
       'city': each_venue.city,
       'state': each_venue.state,
@@ -298,28 +299,45 @@ def create_venue_form():
 def create_venue_submission():
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
-  form = VenueForm(request.form)
-  venue = Venue(name=form.name.data, city=form.city.data, state=form.state.data, address=form.address.data, phone=form.phone.data, image_link=form.image_link.data, facebook_link=form.facebook_link.data, website=form.website_link.data, seeking_talent=form.seeking_talent.data, seeking_description=form.seeking_description.data)
-  print("venue: ", venue)
+  # set the csrf to False, to disable the csrf protection, otherwise it will throw an error "The CSRF token is missing."
+  form = VenueForm(request.form, meta={'csrf': False})
+  
+  if not form.validate():
+    message = []
+    for field, errors in form.errors.items():
+      for error in errors:
+        message.append(field + ' ' + error)
+    flash('Errors ' + str(message))
+    return redirect(url_for('create_venue_submission'))
+  
   # get the list of genres from the form
-  genre_name_list = request.form.getlist('genres')
+  #genre_name_list = request.form.getlist('genres')
   # print("genre_list type: ", type(genre_name_list))
   # print("genre_list data: ", genre_name_list)
   # print("form.genres.data: ", form.genres.data)
-  print("genre_name_list: ", request.form.getlist('genres'))
+  #print("genre_name_list: ", request.form.getlist('genres'))
 
 
-  for each_genre_name in genre_name_list:
+  #for each_genre_name in genre_name_list:
     # create a new Genre object
-    genre = Genre(name=each_genre_name)
+    #genre = Genre(name=each_genre_name)
     # append the new Genre object to the venue.genres list
-    venue.genres.append(genre)
-  print("venue.genres: ", venue.genres)
-  print('Venue After adding genres: ', venue)
-  if not form.validate():
-    flash(form.errors)
-    return redirect(url_for('create_venue_submission'))
+    #venue.genres.append(genre)
+  
   try: 
+    venue = Venue(name=form.name.data, 
+                  city=form.city.data, 
+                  state=form.state.data, 
+                  address=form.address.data, 
+                  phone=form.phone.data, 
+                  image_link=form.image_link.data, 
+                  facebook_link=form.facebook_link.data, 
+                  website=form.website_link.data, 
+                  seeking_talent=form.seeking_talent.data, 
+                  seeking_description=form.seeking_description.data, 
+                  genres = form.genres.data)
+    
+    print("venue: ", venue)
     db.session.add(venue)
     db.session.commit()
     # on successful db insert, flash success
@@ -333,9 +351,9 @@ def create_venue_submission():
   # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
   finally:
     db.session.close()
-  return redirect(url_for('pages/home.html'))
+  return redirect(url_for('index'))
 
-@app.route('/venues/<venue_id>', methods=['DELETE'])
+@app.route('/venues/<int:venue_id>/delete', methods=['DELETE'])
 def delete_venue(venue_id):
   # TODO: Complete this endpoint for taking a venue_id, and using
   # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
@@ -343,10 +361,14 @@ def delete_venue(venue_id):
   try:
     Venue.query.filter_by(id=venue_id).delete()
     db.session.commit()
+    print("delete haha")
+    flash('Venue ' + venue_id + ' was successfully deleted!')
   except:
     error = True
     db.session.rollback()
     print(sys.exc_info())
+    print("delete huhu")
+    flash('An error occurred. Venue ' + venue_id + ' could not be deleted.')
   finally:
     db.session.close()
   if error:
@@ -354,7 +376,7 @@ def delete_venue(venue_id):
     abort(500)
   else:
     flash('Venue ' + venue_id + ' was successfully deleted!')
-  return redirect(url_for('index'))
+  return jsonify({ 'success': True })
 
   # BONUS CHALLENGE: Implement a button to delete a Venue on a Venue Page, have it so that
   # clicking that button delete it from the db then redirect the user to the homepage
@@ -520,7 +542,7 @@ def show_artist(artist_id):
     customized_data = {
       'id': each_artist.id,
       'name': each_artist.name,
-      'genres': [each_genre.name for each_genre in each_artist.genres], # list comprehension, to get the list of Genres' names of each artist
+      'genres': each_artist.genres, # list comprehension, to get the list of Genres' names of each artist
       'city': each_artist.city,
       'state': each_artist.state,
       'phone': each_artist.phone,
@@ -559,9 +581,9 @@ def edit_artist(artist_id):
   # }
   # TODO: populate form with fields from artist with ID <artist_id>
   artist = Artist.query.filter_by(id=artist_id).first()
-  list_of_genres_object = artist.genres # get the list of Genres Object of each artist
-  list_of_genres_name = [each_genre_object.name for each_genre_object in list_of_genres_object]
-  form.genres.data = list_of_genres_name # apply Server-Side Rendering to prepopulate ONLY the "genres" field (because the "genres" field is a multiple select field, and we can't prepopulate it using Client-side Rendering in the edit_artist.html)
+  #list_of_genres_object = artist.genres # get the list of Genres Object of each artist
+  #list_of_genres_name = [each_genre_object.name for each_genre_object in list_of_genres_object]
+  form.genres.data = artist.genres # apply Server-Side Rendering to prepopulate ONLY the "genres" field (because the "genres" field is a multiple select field, and we can't prepopulate it using Client-side Rendering in the edit_artist.html)
   # the rest of the fields will be prepopulated using Client-side Rendering in the edit_artist.html
   return render_template('forms/edit_artist.html', form=form, artist=artist)
 
@@ -569,31 +591,41 @@ def edit_artist(artist_id):
 def edit_artist_submission(artist_id):
   # TODO: take values from the form submitted, and update existing
   # artist record with ID <artist_id> using the new attributes
-  form = ArtistForm(request.form)
-  artist = Artist.query.get(artist_id)
-  artist.name = form.name.data
-  artist.city = form.city.data
-  artist.state = form.state.data
-  artist.phone = form.phone.data
-  artist.image_link = form.image_link.data
-  artist.facebook_link = form.facebook_link.data
-  artist.website = form.website_link.data
-  artist.seeking_venue = form.seeking_venue.data
-  artist.seeking_description = form.seeking_description.data
+  form = ArtistForm(request.form, meta={'csrf': False})
+  
+  if not form.validate:
+    message = []
+    for field, errors in form.errors.items():
+      for error in errors:
+        message.append(field + ' ' + error)
+    flash('Errors ' + str(message))
+    return redirect(url_for('edit_artist_submission', artist_id=artist_id))
+  
+  
   # clear the list of current Genres of that Artist
-  artist.genres = []
+  #artist.genres = []
   #list_of_updated_genres_name = request.form.getlist('genres') # "form.genres.data" is equivalent to "request.form.getlist('genres')", which returns the list of Genres' names that the user has selected on the form
   #list_of_updated_genres_object = form.genres.data
-  if not form.validate:
-    flash(form.errors)
-    return redirect(url_for('edit_artist_submission', artist_id=artist_id))
-  list_of_updated_genres_name = form.genres.data # return the list of Genres' names that the user has selected on the form
+  
+  #list_of_updated_genres_name = form.genres.data # return the list of Genres' names that the user has selected on the form
   # for each_update_genre_object in list_of_updated_genres_object:
   #   list_of_updated_genres_name.append(each_update_genre_object.name)
-  for each_updated_genre_name in list_of_updated_genres_name:
-    genre = Genre(name=each_updated_genre_name)
-    artist.genres.append(genre)
+  # for each_updated_genre_name in list_of_updated_genres_name:
+  #   genre = Genre(name=each_updated_genre_name)
+  #   artist.genres.append(genre)
   try:
+    artist = Artist.query.get(artist_id)
+    artist.name = form.name.data
+    artist.city = form.city.data
+    artist.state = form.state.data
+    artist.phone = form.phone.data
+    artist.image_link = form.image_link.data
+    artist.facebook_link = form.facebook_link.data
+    artist.website = form.website_link.data
+    artist.seeking_venue = form.seeking_venue.data
+    artist.seeking_description = form.seeking_description.data
+    artist.genres = form.genres.data
+    
     db.session.add(artist)
     db.session.commit()
     flash('Artist ' + request.form['name'] + ' was successfully updated!')
@@ -626,8 +658,8 @@ def edit_venue(venue_id):
   # get the current data of a particular Venue (with a particular venue_id) to display on the edit page, for user to edit their existing data
   venue = db.session.query(Venue).filter(Venue.id==venue_id).all()[0] # .all()[0] is equivalent to .first()
 
-  list_of_genres_object = venue.genres # get the list of Genres Object of each venue
-  list_of_genres_name = [each_genre_object.name for each_genre_object in list_of_genres_object] # list comprehension, to get the list of Genres' names of each venue
+  #list_of_genres_object = venue.genres # get the list of Genres Object of each venue
+  #list_of_genres_name = [each_genre_object.name for each_genre_object in list_of_genres_object] # list comprehension, to get the list of Genres' names of each venue
   # list_of_genres_name = []
   # for each_genre_object in list_of_genres_object:
   #   list_of_genres_name.append(each_genre_object.name)
@@ -643,27 +675,21 @@ def edit_venue(venue_id):
   form.website_link.data = venue.website
   form.seeking_talent.data = venue.seeking_talent
   form.seeking_description.data = venue.seeking_description
-  form.genres.data = list_of_genres_name
+  form.genres.data = venue.genres # pre-populate the "genres" field of the form with the list of Genres' names of the Venue
   return render_template('forms/edit_venue.html', form=form, venue=venue)
 
 @app.route('/venues/<int:venue_id>/edit', methods=['POST'])
 def edit_venue_submission(venue_id):
   # TODO: take values from the form submitted, and update existing
   # venue record with ID <venue_id> using the new attributes
-  form = VenueForm(request.form)
-  venue = Venue.query.get(venue_id)
-  print('venue before update: ', venue)
-  venue.name = form.name.data
-  print('venue.name: ', form.name.data)
-  venue.city = form.city.data
-  venue.state = form.state.data
-  venue.address = form.address.data
-  venue.phone = form.phone.data
-  venue.image_link = form.image_link.data
-  venue.facebook_link = form.facebook_link.data
-  venue.website = form.website_link.data
-  venue.seeking_talent = form.seeking_talent.data
-  venue.seeking_description = form.seeking_description.data
+  form = VenueForm(request.form, meta={'csrf': False})
+  if not form.validate():
+    message = []
+    for field, errors in form.errors.items():
+      for error in errors:
+        message.append(field + ' ' + error)
+    flash('Errors ' + str(message))
+    return redirect(url_for('edit_venue_submission', venue_id=venue_id))
   
   # This logic for Update the Genres of a Venue is that: if the updated Genre is not in the Genre list of that Venue, then add that Genre to the Genre list of that Venue. If the updated Genre is already in the Genre list of that Venue, then do nothing (keep what is existing, add what is new)
   # list_of_current_genres_object = venue.genres
@@ -677,20 +703,36 @@ def edit_venue_submission(venue_id):
   #     venue.genres.append(genre)
   
   # this logic for Update the Genres of a Venue is that: clear the list of current Genres of that Venue, and then add the updated Genres to the list of Genres of that Venue (clear what is existing, add what is new)
-  list_of_updated_genres_name = request.form.getlist('genres')
+  #list_of_updated_genres_name = request.form.getlist('genres')
   # Validate the form, by checking if the form is valid or not (basing on the constraints of the VenueForm class in forms.py)
-  if not form.validate():
-    flash(form.errors)
-    return redirect(url_for('edit_venue_submission', venue_id=venue_id))
+  # if not form.validate():
+  #   flash(form.errors)
+  #   return redirect(url_for('edit_venue_submission', venue_id=venue_id))
   # clear the list of current Genres of that Venue
-  venue.genres.clear()
-  for each_updated_genre_name in list_of_updated_genres_name:
-    genre = Genre(name=each_updated_genre_name)
-    venue.genres.append(genre)
-  print(f'updated genres of this Venue, with venue_id = {venue_id}: ', venue.genres)
-  print('updated venue: ', venue)
+  #venue.genres.clear()
+  # for each_updated_genre_name in list_of_updated_genres_name:
+  #   genre = Genre(name=each_updated_genre_name)
+  #   venue.genres.append(genre)
+  # print(f'updated genres of this Venue, with venue_id = {venue_id}: ', venue.genres)
+  # print('updated venue: ', venue)
   
   try:
+    venue = Venue.query.get(venue_id)
+    print('venue before update: ', venue)
+    venue.name = form.name.data
+    print('venue.name: ', form.name.data)
+    venue.city = form.city.data
+    venue.state = form.state.data
+    venue.address = form.address.data
+    venue.phone = form.phone.data
+    venue.image_link = form.image_link.data
+    venue.facebook_link = form.facebook_link.data
+    venue.website = form.website_link.data
+    venue.seeking_talent = form.seeking_talent.data
+    venue.seeking_description = form.seeking_description.data
+    venue.genres = form.genres.data
+    
+    db.session.add(venue)
     db.session.commit()
     flash('Venue ' + request.form['name'] + ' was successfully updated!')
   except:
@@ -715,18 +757,34 @@ def create_artist_submission():
   # called upon submitting the new artist listing form
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
-  form = ArtistForm(request.form)
-  artist = Artist(name=form.name.data, city=form.city.data, state=form.state.data, phone=form.phone.data, image_link=form.image_link.data, facebook_link=form.facebook_link.data, website=form.website_link.data, seeking_venue=form.seeking_venue.data, seeking_description=form.seeking_description.data)
-  genre_name_list = request.form.getlist('genres')
-  for each_genre_name in genre_name_list:
-    # create a new Genre object
-    genre = Genre(name=each_genre_name)
-    # append the new Genre object to the venue.genres list
-    artist.genres.append(genre)
+  form = ArtistForm(request.form, meta={'csrf': False})
   if not form.validate():
-    flash(form.errors)
-    return redirect(url_for('create_artist_submission'))
+    message = []
+    for field, errors in form.errors.items():
+      for error in errors:
+        message.append(field + ' ' + error)
+    flash('Errors ' + str(message))
+    return redirect(url_for('create_artist_form'))
+  
+  #genre_name_list = request.form.getlist('genres')
+  # for each_genre_name in genre_name_list:
+  #   # create a new Genre object
+  #   genre = Genre(name=each_genre_name)
+  #   # append the new Genre object to the venue.genres list
+  #   artist.genres.append(genre)
+  
   try:
+    artist = Artist(name=form.name.data, 
+                    city=form.city.data, 
+                    state=form.state.data, 
+                    phone=form.phone.data, 
+                    image_link=form.image_link.data, 
+                    facebook_link=form.facebook_link.data, 
+                    website=form.website_link.data, 
+                    seeking_venue=form.seeking_venue.data, 
+                    seeking_description=form.seeking_description.data, 
+                    genres=form.genres.data)
+
     db.session.add(artist)
     db.session.commit()
     # on successful db insert, flash success
@@ -810,7 +868,14 @@ def create_shows():
 def create_show_submission():
   # called to create new shows in the db, upon submitting new show listing form
   # TODO: insert form data as a new Show record in the db, instead
-  form = ShowForm(request.form)
+  form = ShowForm(request.form, meta={'csrf': False})
+  if not form.validate():
+    message = []
+    for field, errors in form.errors.items():
+      for error in errors:
+        message.append(field + ' ' + error)
+    flash('Errors ' + str(message))
+    return redirect(url_for('create_show_submission'))
   # Because shows_table is just an Association Table to connect Venue and Artist, so we can't create an object of type shows_table
   #show = shows_table(venue_id=form.venue_id.data, artist_id=form.artist_id.data, start_time=form.start_time.data)
   # instead, we will create a new entry in the shows_table, by using the insert() method
@@ -820,11 +885,12 @@ def create_show_submission():
   #       venue_id=form.venue_id.data,
   #       artist_id=form.artist_id.data,
   #       start_time=form.start_time.data)
-  show = Show(venue_id=form.venue_id.data, artist_id=form.artist_id.data, start_time=form.start_time.data)
-  if not form.validate():
-    flash(form.errors)
-    return redirect(url_for('create_show_submission'))
+ 
+  
   try:
+    show = Show(venue_id=form.venue_id.data, 
+                artist_id=form.artist_id.data, 
+                start_time=form.start_time.data)
     # because we don't create an object of type shows_table, so we can't use db.session.add(show), because db.session.add() only accepts an object as parameter
     #db.session.add(show_entry)
     # instead, we will use db.session.execute() to execute the insert() method
