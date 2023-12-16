@@ -12,7 +12,7 @@ from logging import Formatter, FileHandler
 from flask_wtf import FlaskForm as Form
 from forms import *
 from flask_migrate import Migrate
-from models import db, Artist, Venue, Show, artist_genres_table, venue_genres_table, Genre
+from models import db, Artist, Venue, Show
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
