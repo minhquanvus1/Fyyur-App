@@ -34,7 +34,7 @@ class Venue(db.Model):
     seeking_talent = db.Column(db.Boolean, nullable=False, default=False)
     seeking_description = db.Column(db.String())
     # use the list of genres in the form.py, to create a new column in the Venue table, called genres
-    genres = db.Column(db.ARRAY(db.String()), nullable=True)
+    genres = db.Column(db.ARRAY(db.String()), nullable=False)
     # genres = db.relationship('Genre', secondary=venue_genres_table, backref=db.backref('venues', lazy=True, cascade='all, delete'))
     shows = db.relationship('Show', backref='venue', lazy='joined', cascade='all, delete')
     
@@ -62,7 +62,7 @@ class Artist(db.Model):
     website = db.Column(db.String())
     seeking_venue = db.Column(db.Boolean, nullable=False, default=False)
     seeking_description = db.Column(db.String())
-    genres = db.Column(db.ARRAY(db.String()), nullable=True)
+    genres = db.Column(db.ARRAY(db.String()), nullable=False)
     # genres = db.relationship('Genre', secondary=artist_genres_table, backref=db.backref('artists', lazy=True, cascade='all, delete'))
     # venues = db.relationship('Venue', secondary=shows_table, backref=db.backref('artists', lazy=True))
     shows = db.relationship('Show', backref='artist', lazy='joined', cascade='all, delete')
